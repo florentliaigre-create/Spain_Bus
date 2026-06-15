@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moventis · El Vendrell – Albinyana – La Bisbal – Idiada</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --orange:#E8602C;--orange-deep:#C24315;--navy:#16143A;--red:#D52B1E;
+    --magenta:#EC088C;--ink:#1c1b22;--muted:#6b6878;--line:#e6e3ea;
+    --paper:#f6f4f0;--card:#ffffff;--shadow:0 1px 2px rgba(20,18,40,.06),0 8px 24px rgba(20,18,40,.06);
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.45;}
+  .mono{font-family:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+
+  header.top{background:var(--orange);color:#fff;padding:18px 22px;border-bottom:5px solid var(--orange-deep);}
+  .top .row1{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .top .logo{font-weight:800;letter-spacing:.5px;font-size:15px;text-transform:lowercase;background:#fff;color:var(--orange);padding:4px 12px;border-radius:4px;}
+  .top .tag{font-size:11px;text-transform:uppercase;letter-spacing:2.5px;opacity:.9;}
+  .langs{margin-left:auto;display:inline-flex;background:rgba(255,255,255,.18);border-radius:999px;padding:3px;gap:2px;}
+  .langs button{border:0;background:transparent;color:#fff;cursor:pointer;font:inherit;font-weight:700;font-size:12px;padding:5px 11px;border-radius:999px;opacity:.8;}
+  .langs button[aria-pressed="true"]{background:#fff;color:var(--orange);opacity:1;}
+  .top h1{margin:12px 0 0;font-size:clamp(19px,4.2vw,29px);font-weight:800;letter-spacing:-.4px;line-height:1.1;}
+  .top .sub{margin-top:4px;font-size:13px;opacity:.92;max-width:64ch;}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px;}
+  .controls{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:18px 0 6px;}
+  .seg{display:inline-flex;background:#eceaf1;border-radius:999px;padding:4px;gap:2px;}
+  .seg button{border:0;background:transparent;cursor:pointer;font:inherit;font-weight:700;padding:7px 16px;border-radius:999px;color:var(--muted);font-size:13px;transition:all .15s;}
+  .seg button[aria-pressed="true"]{background:var(--navy);color:#fff;box-shadow:var(--shadow);}
+  .seg.sat button[aria-pressed="true"]{background:var(--red);}
+  .filter{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none;}
+  .filter input{accent-color:var(--magenta);width:16px;height:16px;}
+
+  .deps-label{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:18px 2px 8px;}
+  .deps{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
+  .dep{text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:11px 13px;cursor:pointer;font:inherit;transition:all .15s;position:relative;overflow:hidden;}
+  .dep:hover{border-color:#cfc9d8;transform:translateY(-1px);box-shadow:var(--shadow);}
+  .dep[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 3px rgba(28,27,34,.08),var(--shadow);}
+  .dep .accent{position:absolute;left:0;top:0;bottom:0;width:5px;}
+  .dep .time{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+  .dep .arrow{color:var(--muted);font-weight:600;font-size:12px;margin-left:6px;}
+  .dep .type{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:3px;}
+  .dep .star{position:absolute;right:9px;top:9px;color:var(--magenta);font-size:13px;}
+
+  .detail{margin-top:24px;background:var(--card);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;}
+  .detail .head{padding:18px 20px 16px;border-bottom:1px solid var(--line);}
+  .detail .od{font-size:clamp(16px,3.4vw,21px);font-weight:800;letter-spacing:-.3px;}
+  .detail .od .dash{color:var(--orange);margin:0 8px;}
+  .stats{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px;font-size:12.5px;color:var(--muted);}
+  .stats b{color:var(--ink);font-weight:700;}
+  .stats .pill{display:inline-flex;align-items:center;gap:6px;}
+  .badge-pol{background:rgba(236,8,140,.1);color:var(--magenta);font-weight:700;padding:3px 9px;border-radius:999px;font-size:11.5px;}
+  .modeseg{display:inline-flex;background:#eceaf1;border-radius:999px;padding:3px;gap:2px;margin-top:14px;}
+  .modeseg button{border:0;background:transparent;cursor:pointer;font:inherit;font-weight:700;padding:6px 14px;border-radius:999px;color:var(--muted);font-size:12.5px;}
+  .modeseg button[aria-pressed="true"]{background:var(--orange);color:#fff;}
+
+  /* Carte Leaflet */
+  #mapholder{padding:6px;}
+  #leafmap{height:620px;width:100%;border-radius:12px;z-index:0;}
+  .leaflet-container{background:#eef1f4;font:inherit;}
+  .ttime{background:rgba(255,255,255,.92);border:0!important;box-shadow:0 1px 3px rgba(0,0,0,.2)!important;font-weight:700;font-size:10px;padding:1px 5px;color:#1c1b22;font-variant-numeric:tabular-nums;border-radius:4px;}
+  .ttime.leaflet-tooltip-top:before,.ttime.leaflet-tooltip-bottom:before{display:none;}
+  .ttwh{background:var(--magenta);color:#fff;font-weight:700;border:0!important;box-shadow:none!important;font-size:11px;border-radius:5px;}
+  .ttwh:before{display:none;}
+  .whicon{font-size:19px;line-height:24px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}
+  .maptools{display:flex;justify-content:flex-end;padding:2px 8px 8px;}
+  .linetoggle{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;user-select:none;background:#f3f1f6;padding:6px 12px;border-radius:999px;}
+  .linetoggle input{accent-color:var(--orange);width:15px;height:15px;}
+  .maphint{font-size:11.5px;color:var(--muted);padding:8px 8px 12px;}
+
+  /* Carte SVG (repli) */
+  .mapwrap{position:relative;padding:6px;}
+  .mapwrap svg{width:100%;height:auto;display:block;border-radius:12px;background:linear-gradient(160deg,#fbfaf7,#f1eef4);}
+  .route-casing{fill:none;stroke:#fff;stroke-width:7;stroke-linejoin:round;stroke-linecap:round;}
+  .route-line{fill:none;stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round;}
+  .mnode{cursor:pointer;transition:r .12s;}
+  .mnode:hover{r:9;}
+  .tlabel{font-size:9px;font-weight:700;fill:var(--ink);paint-order:stroke;stroke:#fff;stroke-width:2.5px;stroke-linejoin:round;pointer-events:none;}
+  .nlabel{font-size:9.5px;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;pointer-events:none;}
+  .maptip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:6px 10px;border-radius:8px;opacity:0;transform:translate(-50%,-130%);transition:opacity .1s;white-space:nowrap;z-index:5;box-shadow:var(--shadow);}
+
+  /* Ruban */
+  .ribbon{padding:8px 18px 22px;}
+  .stop{display:grid;grid-template-columns:54px 26px 1fr;align-items:start;gap:4px;position:relative;}
+  .stop .t{grid-column:1;font-size:13px;font-weight:700;padding-top:11px;text-align:right;padding-right:6px;}
+  .stop .rail{grid-column:2;position:relative;justify-self:center;width:100%;display:flex;justify-content:center;}
+  .stop .rail::before{content:"";position:absolute;top:0;bottom:0;width:4px;background:var(--orange);left:50%;transform:translateX(-50%);}
+  .stop:first-child .rail::before{top:16px;}
+  .stop:last-child .rail::before{bottom:calc(100% - 16px);}
+  .node{width:13px;height:13px;border-radius:50%;background:#fff;border:3px solid var(--orange);margin-top:9px;z-index:1;}
+  .stop.term .node{width:17px;height:17px;background:var(--orange);margin-top:7px;}
+  .stop.pol .rail::before{background:var(--magenta);}
+  .stop.pol .node{border-color:var(--magenta);width:15px;height:15px;background:rgba(236,8,140,.15);margin-top:8px;box-shadow:0 0 0 4px rgba(236,8,140,.12);}
+  .stop .info{grid-column:3;padding:8px 0 8px 4px;border-bottom:1px solid #f0eef3;}
+  .stop:last-child .info{border-bottom:0;}
+  .stop .name{font-size:14.5px;font-weight:600;letter-spacing:-.1px;}
+  .stop.pol .name{color:var(--magenta);}
+  .stop .loc{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:1px;}
+  .stop .note{display:inline-block;margin-top:4px;font-size:11.5px;color:var(--magenta);background:rgba(236,8,140,.08);padding:2px 8px;border-radius:6px;font-weight:600;}
+  .loc-head{grid-column:3;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--orange-deep);padding:14px 0 2px 4px;}
+
+  .grid-view{margin-top:24px;display:none;}
+  .grid-view.on{display:block;}
+  .tripPane.off{display:none;}
+  .tablewrap{overflow-x:auto;background:var(--card);border-radius:14px;box-shadow:var(--shadow);}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;}
+  th,td{padding:7px 9px;text-align:center;white-space:nowrap;border-bottom:1px solid #f0eef3;}
+  th.stopcol,td.stopcol{text-align:left;position:sticky;left:0;background:var(--card);z-index:2;min-width:200px;font-weight:600;}
+  thead th{background:var(--navy);color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;}
+  thead.sat th{background:var(--red);}
+  td.x{color:#d8d4de;}
+  tr.polrow td.stopcol{color:var(--magenta);}
+  tr.polrow td{background:rgba(236,8,140,.04);}
+  tbody tr:hover td{background:#faf8fc;}
+  tbody tr.polrow:hover td{background:rgba(236,8,140,.08);}
+
+  footer{margin-top:30px;font-size:11.5px;color:var(--muted);text-align:center;line-height:1.6;}
+  footer a{color:var(--orange-deep);}
+  @media (max-width:560px){.stop{grid-template-columns:46px 22px 1fr;}.deps{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}.filter{margin-left:0;width:100%;}#leafmap{height:480px;}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+  :focus-visible{outline:3px solid var(--navy);outline-offset:2px;border-radius:6px;}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="row1">
+    <span class="logo">moventis</span>
+    <span class="tag">izaro · Tarragona</span>
+    <div class="langs" id="langs">
+      <button data-l="fr" aria-pressed="true">FR</button>
+      <button data-l="es" aria-pressed="false">ES</button>
+      <button data-l="en" aria-pressed="false">EN</button>
+      <button data-l="ca" aria-pressed="false">CA</button>
+    </div>
+  </div>
+  <h1>El Vendrell – Albinyana – La Bisbal del Penedès – Idiada</h1>
+  <div class="sub" id="sub"></div>
+</header>
+
+<div class="wrap">
+  <div class="controls">
+    <div class="seg" id="daySeg">
+      <button data-day="week" aria-pressed="true"></button>
+      <button data-day="sat" aria-pressed="false"></button>
+    </div>
+    <div class="seg" id="viewSeg">
+      <button data-view="trip" aria-pressed="true"></button>
+      <button data-view="grid" aria-pressed="false"></button>
+    </div>
+    <label class="filter"><input type="checkbox" id="polFilter"> <span id="polFilterLbl"></span></label>
+  </div>
+
+  <div class="tripPane" id="tripPane">
+    <div class="deps-label" id="depsLabel"></div>
+    <div class="deps" id="deps"></div>
+    <section class="detail" id="detail" aria-live="polite"></section>
+  </div>
+
+  <div class="grid-view" id="gridView"></div>
+  <footer id="footer"></footer>
+</div>
+
+<script>
+const S = {
+  VEN:{n:"El Vendrell (estació d'autobusos)",l:"El Vendrell",lat:41.2186,lon:1.5362},
+  BAR:{n:"Ctra. Barcelona (Les Mates)",l:"El Vendrell",lat:41.2255,lon:1.5445},
+  HOS:{n:"Hospital Comarcal del Vendrell",l:"El Vendrell",lat:41.2269,lon:1.5537},
+  PED:{n:"TP-2125 – Les Pedreres",l:"Santa Oliva",lat:41.2510,lon:1.5480},
+  REM:{n:"Av. Verge del Remei – Mn. A. Paradís",l:"Santa Oliva",lat:41.2535,lon:1.5520},
+  SAI:{n:"Saifores",l:"Banyeres del Penedès",lat:41.2636,lon:1.5505},
+  MAS:{n:"TP-2125 Les Masies",l:"Banyeres del Penedès",lat:41.2680,lon:1.5560},
+  PRI:{n:"Priorat de Banyeres",l:"Banyeres del Penedès",lat:41.2712,lon:1.5525},
+  VIL:{n:"Pl. de la Vila (marquesina)",l:"Llorenç del Penedès",lat:41.2829,lon:1.5533},
+  SAR:{n:"C. Saragossa (marquesina)",l:"Banyeres del Penedès",lat:41.2794,lon:1.5806},
+  REN:{n:"Estació RENFE",l:"L'Arboç",lat:41.2734,lon:1.6005},
+  LLE:{n:"Lleger",l:"Sant Jaume dels Domenys",lat:41.2946,lon:1.5783},
+  COR:{n:"Cornudella",l:"Sant Jaume dels Domenys",lat:41.2998,lon:1.5698},
+  PRA:{n:"C. Prat de la Riba (marquesina)",l:"Sant Jaume dels Domenys",lat:41.2978,lon:1.5606},
+  HST:{n:"L'Hostal",l:"Sant Jaume dels Domenys",lat:41.2950,lon:1.5450},
+  TOR:{n:"La Torregassa",l:"Sant Jaume dels Domenys",lat:41.2921,lon:1.5281},
+  PAP:{n:"Papiolet",l:"Sant Jaume dels Domenys",lat:41.2827,lon:1.5263},
+  PPA:{n:"Ctra. C-51 Km 9,1 (La Papiola)",l:"Albinyana",lat:41.2555,lon:1.4980},
+  AFO:{n:"C. Afores",l:"Albinyana",lat:41.2450,lon:1.4862},
+  MOR:{n:"Les Moreres (Les Peces)",l:"Albinyana",lat:41.2553,lon:1.5028},
+  SAG:{n:"Sagrat Cor (Les Peces)",l:"Albinyana",lat:41.2540,lon:1.5005},
+  ROT:{n:"Av. de la Bisbal (rotonda Corte Inglés)",l:"La Bisbal del Penedès",lat:41.2685,lon:1.5095},
+  IDI:{n:"Pol. Ind. l'Albornar (Centre IDIADA)",l:"Santa Oliva",lat:41.2665,lon:1.5212,pol:true},
+  MON:{n:"Pol. Ind. l'Albornar (Rda. l'Albornar – C. Montmell)",l:"Santa Oliva",lat:41.2715,lon:1.5150,pol:true,closest:true},
+  FMA:{n:"C. Francesc Macià, 2 (marquesina)",l:"La Bisbal del Penedès",lat:41.2776,lon:1.4905},
+};
+const WH = {lat:41.2728,lon:1.5154};
+const TYPES = {feeder:{color:"#7A6FF0"},pol:{color:"#EC088C"},loop:{color:"#16143A"},ar:{color:"#E8602C"},loopol:{color:"#EC088C"}};
+const MAGENTA="#EC088C";
+
+const TRIPS = [
+ {id:"w1",day:"week",type:"feeder",stops:[["FMA","07:15"],["MOR","07:20"],["SAG","07:22"],["AFO","07:28"],["PPA","07:34"],["HOS","07:40"],["BAR","07:42"],["VEN","07:45"]]},
+ {id:"w2",day:"week",type:"pol",stops:[["VEN","07:45"],["BAR","07:47"],["HOS","07:50"],["PPA","07:55"],["AFO","08:00"],["MOR","08:05"],["FMA","08:10"],["ROT","08:12"],["IDI","08:14"],["MON","08:16"]]},
+ {id:"w3",day:"week",type:"loop",stops:[["VEN","07:50"],["BAR","07:52"],["HOS","07:54"],["PED","08:00"],["REM","08:03"],["SAI","08:05"],["MAS","08:07"],["PRI","08:09"],["VIL","08:11"],["SAR","08:13"],["REN","08:18"],["SAR","08:23"],["LLE","08:26"],["COR","08:28"],["PRA","08:30"],["HST","08:32"],["TOR","08:34"],["PAP","08:36"],["FMA","08:41"],["MOR","08:44"],["SAG","08:46"],["AFO","08:48"],["PPA","08:50"],["HOS","08:59"],["BAR","09:01"],["VEN","09:06"]]},
+ {id:"w4",day:"week",type:"ar",stops:[["VEN","10:00"],["BAR","10:02"],["HOS","10:04"],["PPA","10:12"],["MOR","10:14"],["FMA","10:20"],["MOR","10:26"],["SAG","10:28"],["AFO","10:30"],["PPA","10:35"],["HOS","10:42"],["BAR","10:44"],["VEN","10:47"]]},
+ {id:"w5",day:"week",type:"loop",stops:[["VEN","12:55"],["BAR","12:57"],["HOS","12:59"],["PED","13:05"],["REM","13:08"],["SAI","13:10"],["MAS","13:12"],["PRI","13:14"],["VIL","13:16"],["SAR","13:18"],["REN","13:23"],["SAR","13:28"],["LLE","13:31"],["COR","13:33"],["PRA","13:35"],["HST","13:38"],["TOR","13:40"],["PAP","13:43"],["FMA","13:48"],["MOR","13:56"],["SAG","13:57"],["AFO","13:58"],["PPA","14:03"],["HOS","14:08"],["BAR","14:11"],["VEN","14:15"]]},
+ {id:"w6",day:"week",type:"loopol",stops:[["VEN","16:50"],["BAR","16:52"],["HOS","16:54"],["PED","17:00"],["REM","17:03"],["SAI","17:05"],["MAS","17:07"],["PRI","17:09"],["VIL","17:11"],["SAR","17:13"],["REN","17:18"],["SAR","17:23"],["LLE","17:26"],["COR","17:28"],["PRA","17:31"],["HST","17:34"],["TOR","17:36"],["PAP","17:39"],["ROT","17:49"],["IDI","17:51"],["MON","17:53"],["FMA","17:55"],["MOR","18:00"],["SAG","18:02"],["AFO","18:07"],["PPA","18:15"],["HOS","18:20"],["BAR","18:22"],["VEN","18:25"]]},
+ {id:"w7",day:"week",type:"ar",stops:[["VEN","20:00"],["BAR","20:02"],["HOS","20:04"],["PPA","20:10"],["MOR","20:12"],["FMA","20:17"],["MOR","20:22"],["SAG","20:24"],["AFO","20:28"],["PPA","20:35"],["HOS","20:40"],["BAR","20:42"],["VEN","20:47"]]},
+ {id:"w8",day:"week",type:"loop",stops:[["VEN","21:00"],["BAR","21:02"],["HOS","21:04"],["PED","21:10"],["REM","21:13"],["SAI","21:15"],["MAS","21:17"],["PRI","21:19"],["VIL","21:21"],["SAR","21:23"],["REN","21:27"],["SAR","21:32"],["LLE","21:36"],["COR","21:38"],["PRA","21:40"],["HST","21:42"],["TOR","21:44"],["PAP","21:46"],["FMA","21:51"],["MOR","21:56"],["SAG","21:58"],["AFO","22:01"],["PPA","22:06"],["HOS","22:11"],["BAR","22:13"],["VEN","22:20"]]},
+ {id:"s1",day:"sat",type:"ar",stops:[["VEN","09:45"],["BAR","09:47"],["HOS","09:50"],["PPA","09:57"],["MOR","09:59"],["FMA","10:05"],["MOR","10:10"],["SAG","10:12"],["AFO","10:15"],["PPA","10:20"],["HOS","10:25"],["BAR","10:27"],["VEN","10:32"]]},
+ {id:"s2",day:"sat",type:"ar",stops:[["VEN","13:30"],["BAR","13:32"],["HOS","13:34"],["PPA","13:42"],["MOR","13:44"],["FMA","13:50"],["MOR","13:55"],["SAG","13:57"],["AFO","14:00"],["PPA","14:05"],["HOS","14:10"],["BAR","14:12"],["VEN","14:17"]]},
+];
+
+const TR = {
+  fr:{sub:"Explorateur des trajets : chaque départ suit un parcours différent. Les arrêts du Polígono l'Albornar (zone de l'entrepôt) sont en magenta.",
+    week:"Lun – Ven",sat:"Samedi",vTrip:"Trajet",vGrid:"Grille horaire",polFilter:"Dessert le Polígono l'Albornar",
+    showLines:"Afficher les lignes",
+    deps:"Départs — choisissez un horaire",map:"Carte",list:"Étapes",depart:"Départ",arrive:"Arrivée",dur:"Durée",stops:"arrêts",
+    servesPol:"Dessert le Polígono l'Albornar",warehouse:"Entrepôt",closest:"≈ arrêt le plus proche de l'entrepôt",
+    noDeps:"Aucun départ ne dessert le Polígono ce jour-là. Décochez le filtre ou changez de jour.",
+    mapHint:"Survolez ou touchez un arrêt pour voir son nom et son heure.",
+    tileNote:"Carte interactive : zoom et déplacement, points d'arrêt avec horaires. Si le fond reste gris, votre réseau bloque les serveurs de cartes — ouvrez le fichier sur une connexion non bridée (ex. partage mobile).",
+    routeFail:"tracé routier indisponible (réseau bloqué) — lignes directes affichées",
+    stopCol:"Arrêt",gridNote:"Colonnes = départs depuis le 1ᵉʳ arrêt. Lignes magenta = arrêts du Polígono l'Albornar. « · » = non desservi.",
+    f1:"Horaires transcrits depuis la fiche Moventis / Izaro. À recouper avec moventis.es · T. 977 66 02 40.",
+    f2:"Fond cartographique © OpenStreetMap. Coordonnées des arrêts approximatives (centres de localité pour les hameaux).",
+    types:{feeder:"Navette → El Vendrell",pol:"Direct → Polígono Albornar",loop:"Boucle complète",ar:"Aller-retour La Bisbal",loopol:"Boucle + Polígono Albornar"}},
+  es:{sub:"Explorador de trayectos: cada salida sigue un recorrido distinto. Las paradas del Polígono l'Albornar (zona del almacén) están en magenta.",
+    week:"Lun – Vie",sat:"Sábado",vTrip:"Trayecto",vGrid:"Horario",polFilter:"Para en el Polígono l'Albornar",
+    showLines:"Mostrar las líneas",
+    deps:"Salidas — elija un horario",map:"Mapa",list:"Paradas",depart:"Salida",arrive:"Llegada",dur:"Duración",stops:"paradas",
+    servesPol:"Para en el Polígono l'Albornar",warehouse:"Almacén",closest:"≈ parada más cercana al almacén",
+    noDeps:"Ningún servicio para en el Polígono ese día. Desmarque el filtro o cambie de día.",
+    mapHint:"Pase el cursor o toque una parada para ver su nombre y hora.",
+    tileNote:"Mapa interactivo: zoom y arrastre, paradas con horarios. Si el fondo queda gris, su red bloquea los servidores de mapas — abra el archivo en una conexión sin restricciones (p. ej. datos móviles).",
+    routeFail:"ruta por carretera no disponible (red bloqueada) — se muestran líneas directas",
+    stopCol:"Parada",gridNote:"Columnas = salidas desde la 1.ª parada. Filas magenta = paradas del Polígono l'Albornar. « · » = no servida.",
+    f1:"Horarios transcritos de la ficha Moventis / Izaro. Cotejar con moventis.es · T. 977 66 02 40.",
+    f2:"Base cartográfica © OpenStreetMap. Coordenadas de las paradas aproximadas (centros de localidad para las aldeas).",
+    types:{feeder:"Lanzadera → El Vendrell",pol:"Directo → Polígono Albornar",loop:"Circuito completo",ar:"Ida y vuelta La Bisbal",loopol:"Circuito + Polígono Albornar"}},
+  en:{sub:"Trip explorer: each departure follows a different route. The Polígono l'Albornar stops (warehouse area) are shown in magenta.",
+    week:"Mon – Fri",sat:"Saturday",vTrip:"Trip",vGrid:"Timetable",polFilter:"Stops at Polígono l'Albornar",
+    showLines:"Show lines",
+    deps:"Departures — pick a time",map:"Map",list:"Stops",depart:"Departure",arrive:"Arrival",dur:"Duration",stops:"stops",
+    servesPol:"Serves Polígono l'Albornar",warehouse:"Warehouse",closest:"≈ closest stop to the warehouse",
+    noDeps:"No departure serves the Polígono on this day. Uncheck the filter or switch day.",
+    mapHint:"Hover or tap a stop to see its name and time.",
+    tileNote:"Interactive map: zoom and drag, stops with times. If the background stays grey, your network blocks the map servers — open the file on an unrestricted connection (e.g. mobile hotspot).",
+    routeFail:"road route unavailable (network blocked) — straight lines shown",
+    stopCol:"Stop",gridNote:"Columns = departures from the 1st stop. Magenta rows = Polígono l'Albornar stops. « · » = not served.",
+    f1:"Times transcribed from the Moventis / Izaro sheet. Cross-check with moventis.es · T. 977 66 02 40.",
+    f2:"Basemap © OpenStreetMap. Stop coordinates are approximate (village centres for hamlets).",
+    types:{feeder:"Shuttle → El Vendrell",pol:"Direct → Polígono Albornar",loop:"Full loop",ar:"Round trip La Bisbal",loopol:"Loop + Polígono Albornar"}},
+  ca:{sub:"Explorador de trajectes: cada sortida segueix un recorregut diferent. Les parades del Polígon l'Albornar (zona del magatzem) es mostren en magenta.",
+    week:"Dl – Dv",sat:"Dissabte",vTrip:"Trajecte",vGrid:"Horari",polFilter:"Para al Polígon l'Albornar",
+    showLines:"Mostrar les línies",
+    deps:"Sortides — trieu un horari",map:"Mapa",list:"Parades",depart:"Sortida",arrive:"Arribada",dur:"Durada",stops:"parades",
+    servesPol:"Para al Polígon l'Albornar",warehouse:"Magatzem",closest:"≈ parada més propera al magatzem",
+    noDeps:"Cap sortida no para al Polígon aquest dia. Desmarqueu el filtre o canvieu de dia.",
+    mapHint:"Passeu o toqueu una parada per veure'n el nom i l'hora.",
+    tileNote:"Mapa interactiu: zoom i desplaçament, parades amb horaris. Si el fons queda gris, la vostra xarxa bloqueja els servidors de mapes — obriu el fitxer en una connexió sense restriccions (p. ex. dades mòbils).",
+    routeFail:"ruta per carretera no disponible (xarxa bloquejada) — es mostren línies directes",
+    stopCol:"Parada",gridNote:"Columnes = sortides des de la 1a parada. Files magenta = parades del Polígon l'Albornar. « · » = no servida.",
+    f1:"Horaris transcrits de la fitxa Moventis / Izaro. Contrasteu amb moventis.es · T. 977 66 02 40.",
+    f2:"Base cartogràfica © OpenStreetMap. Coordenades de les parades aproximades (centres de localitat per als llogarets).",
+    types:{feeder:"Llançadora → El Vendrell",pol:"Directe → Polígon Albornar",loop:"Bucle complet",ar:"Anada i tornada La Bisbal",loopol:"Bucle + Polígon Albornar"}},
+};
+
+let lang="fr", day="week", view="trip", polOnly=false, selected=null, mode="map", lmap=null, showLines=false, lineState=null;
+const t=()=>TR[lang];
+const $=s=>document.querySelector(s);
+const depsEl=$("#deps"), detailEl=$("#detail"), gridEl=$("#gridView");
+const servesPol=tr=>tr.stops.some(([k])=>S[k].pol);
+const toMin=x=>{const[h,m]=x.split(":").map(Number);return h*60+m;};
+const dur=tr=>toMin(tr.stops.at(-1)[1])-toMin(tr.stops[0][1]);
+const fmtDur=m=>{const h=Math.floor(m/60),mm=m%60;return (h?h+" h ":"")+(mm?mm+" min":"")||"0 min";};
+
+function paintStatic(){
+  document.documentElement.lang=lang;
+  $("#sub").textContent=t().sub;
+  $("#daySeg").children[0].textContent=t().week;
+  $("#daySeg").children[1].textContent=t().sat;
+  $("#viewSeg").children[0].textContent=t().vTrip;
+  $("#viewSeg").children[1].textContent=t().vGrid;
+  $("#polFilterLbl").textContent=t().polFilter;
+  $("#depsLabel").textContent=t().deps;
+  $("#footer").innerHTML=`${t().f1}<br>${t().f2}`;
+}
+
+function renderDeps(){
+  const list=TRIPS.filter(x=>x.day===day && (!polOnly||servesPol(x)));
+  depsEl.innerHTML="";
+  if(!list.length){depsEl.innerHTML=`<div style="color:var(--muted);padding:8px 2px;font-size:13.5px">${t().noDeps}</div>`;detailEl.innerHTML="";return;}
+  if(!list.includes(selected)) selected=list[0];
+  list.forEach(x=>{
+    const d=S[x.stops.at(-1)[0]].l;
+    const b=document.createElement("button");
+    b.className="dep";b.setAttribute("aria-pressed",x===selected);
+    b.innerHTML=`<span class="accent" style="background:${TYPES[x.type].color}"></span>
+      ${servesPol(x)?`<span class="star" title="${t().servesPol}">★</span>`:""}
+      <span class="time mono">${x.stops[0][1]}</span><span class="arrow">→ ${d}</span>
+      <div class="type" style="color:${TYPES[x.type].color}">${t().types[x.type]}</div>`;
+    b.onclick=()=>{selected=x;renderDeps();renderDetail();};
+    depsEl.appendChild(b);
+  });
+}
+
+/* ---- Carte Leaflet (vrai fond, points de passage uniquement) ---- */
+function addBasemap(map){
+  const carto=L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    {subdomains:"abcd",maxZoom:19,attribution:"© OpenStreetMap, © CARTO"});
+  let errs=0,swapped=false;
+  carto.on("tileerror",()=>{ if(swapped)return; if(++errs>=4){ swapped=true; map.removeLayer(carto);
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+      {maxZoom:19,attribution:"© Esri"}).addTo(map); }});
+  carto.addTo(map);
+}
+function initLeaflet(tr){
+  const map=L.map("leafmap",{scrollWheelZoom:true});
+  lmap=map;
+  addBasemap(map);
+  const col=TYPES[tr.type].color;
+  const latlngs=tr.stops.map(([k])=>[S[k].lat,S[k].lon]);
+
+  // Lignes optionnelles reliant les arrêts dans l'ordre — sous les marqueurs, activables via la case à cocher
+  const lineGrp=L.layerGroup().addTo(map);
+  const drawLines=()=>{lineGrp.clearLayers();
+    L.polyline(latlngs,{color:"#fff",weight:7,opacity:.9,lineJoin:"round",lineCap:"round"}).addTo(lineGrp);
+    L.polyline(latlngs,{color:col,weight:3.5,lineJoin:"round",lineCap:"round"}).addTo(lineGrp);};
+  lineState={grp:lineGrp,draw:drawLines};
+  if(showLines) drawLines();
+
+  // Points de passage. Arrêt desservi plusieurs fois = un seul repère, horaires regroupés
+  const firstKey=tr.stops[0][0], lastKey=tr.stops.at(-1)[0];
+  const agg=new Map();
+  tr.stops.forEach(([k,time])=>{ if(!agg.has(k)) agg.set(k,{...S[k],times:[time]}); else agg.get(k).times.push(time); });
+  let j=0;
+  agg.forEach((p,k)=>{
+    const term=(k===firstKey||k===lastKey);
+    const c=p.pol?MAGENTA:(term?col:"#fff"), stroke=p.pol?MAGENTA:col;
+    const m=L.circleMarker([p.lat,p.lon],{radius:term?7:(p.pol?6.5:5),color:stroke,fillColor:c,fillOpacity:1,weight:2.5}).addTo(map);
+    const dir=(j%2)?"bottom":"top";
+    m.bindTooltip(p.times.join(" · "),{permanent:true,direction:dir,offset:[0,dir==="top"?-3:6],className:"ttime"});
+    m.bindPopup(`<b>${p.times.join(" · ")}</b> · ${p.n}<br><span style="color:#6b6878">${p.l}</span>`);
+    j++;
+  });
+  const wIcon=L.divIcon({className:"whicon",html:"🏭",iconSize:[24,24],iconAnchor:[12,12]});
+  L.marker([WH.lat,WH.lon],{icon:wIcon,zIndexOffset:1000}).addTo(map)
+    .bindTooltip(t().warehouse,{permanent:true,direction:"bottom",offset:[0,8],className:"ttwh"});
+  map.fitBounds(L.latLngBounds(latlngs.concat([[WH.lat,WH.lon]])).pad(0.18));
+  setTimeout(()=>map.invalidateSize(),60);
+}
+
+function mountMap(tr){
+  const holder=$("#mapholder"); if(!holder)return;
+  const ctrl=`<div class="maptools"><label class="linetoggle"><input type="checkbox" id="lineToggle" ${showLines?"checked":""}> ${t().showLines}</label></div>`;
+  if(typeof L!=="undefined"){
+    holder.innerHTML=ctrl+`<div id="leafmap"></div><div class="maphint" id="maphint">${t().tileNote}</div>`;
+    try{ initLeaflet(tr); }
+    catch(e){ holder.innerHTML=ctrl+buildSVG(tr); wireSVG(); }
+  }else{
+    holder.innerHTML=ctrl+buildSVG(tr); wireSVG();
+  }
+  const cb=document.getElementById("lineToggle");
+  if(cb) cb.addEventListener("change",e=>{
+    showLines=e.target.checked;
+    if(lmap && lineState && lineState.grp){ showLines?lineState.draw():lineState.grp.clearLayers(); }
+    else { mountMap(tr); }   // carte SVG : on régénère
+  });
+}
+
+/* ---- Carte SVG (repli hors-ligne) ---- */
+function buildSVG(tr){
+  const pts=tr.stops.map(([k,time])=>({time,...S[k]}));
+  const lats=[...pts.map(p=>p.lat),WH.lat],lons=[...pts.map(p=>p.lon),WH.lon];
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLon=Math.min(...lons),maxLon=Math.max(...lons);
+  const kx=Math.cos((minLat+maxLat)/2*Math.PI/180),W=800,H=560,pad=58;
+  const spanX=Math.max((maxLon-minLon)*kx,1e-6),spanY=Math.max(maxLat-minLat,1e-6);
+  const scale=Math.min((W-2*pad)/spanX,(H-2*pad)/spanY);
+  const offX=(W-2*pad-spanX*scale)/2,offY=(H-2*pad-spanY*scale)/2;
+  const proj=(lat,lon)=>[pad+offX+(lon-minLon)*kx*scale,pad+offY+(maxLat-lat)*scale];
+  const xy=pts.map(p=>proj(p.lat,p.lon)),poly=xy.map(c=>c.join(",")).join(" "),col=TYPES[tr.type].color;
+  const firstKey=tr.stops[0][0],lastKey=tr.stops.at(-1)[0];
+  const agg=new Map();
+  tr.stops.forEach(([k,time])=>{ if(!agg.has(k)) agg.set(k,{...S[k],times:[time]}); else agg.get(k).times.push(time); });
+  let nodes="",labels="",j=0;
+  agg.forEach((p,k)=>{
+    const[x,y]=proj(p.lat,p.lon),term=(k===firstKey||k===lastKey);
+    const c=p.pol?MAGENTA:(term?col:"#fff"),stroke=p.pol?MAGENTA:col,r=term?7:(p.pol?6.5:5);
+    const tl=p.times.join(" · ");
+    nodes+=`<circle class="mnode" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${c}" stroke="${stroke}" stroke-width="2.5" data-name="${p.n.replace(/"/g,'&quot;')}" data-loc="${p.l}" data-time="${tl}"></circle>`;
+    labels+=`<text class="tlabel" x="${(x+8).toFixed(1)}" y="${(y+3+(j%2?9:-2)).toFixed(1)}">${tl}</text>`;
+    if(term||p.pol){const anchor=x>W*0.62?"end":"start",lx=anchor==="end"?x-9:x+9;
+      labels+=`<text class="nlabel" x="${lx.toFixed(1)}" y="${(y-7).toFixed(1)}" text-anchor="${anchor}" fill="${p.pol?MAGENTA:col}">${p.n.split('(')[0].trim()}</text>`;}
+    j++;
+  });
+  const[wx,wy]=proj(WH.lat,WH.lon);
+  const wh=`<g><line x1="${wx}" y1="${wy}" x2="${wx}" y2="${wy-22}" stroke="${MAGENTA}" stroke-width="2" stroke-dasharray="3 3"/>
+    <rect x="${wx-9}" y="${wy-40}" width="18" height="18" rx="3" fill="${MAGENTA}"/>
+    <text x="${wx}" y="${wy-27}" text-anchor="middle" font-size="11" fill="#fff">🏭</text>
+    <text class="nlabel" x="${wx}" y="${wy+16}" text-anchor="middle" fill="${MAGENTA}">${t().warehouse}</text></g>`;
+  return `<div class="mapwrap"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t().map}">
+    ${showLines?`<polyline class="route-casing" points="${poly}"/><polyline class="route-line" points="${poly}" stroke="${col}"/>`:""}
+    ${nodes}${labels}${wh}</svg><div class="maptip" id="maptip"></div><div class="maphint">${t().mapHint}</div></div>`;
+}
+function wireSVG(){
+  const wrap=detailEl.querySelector(".mapwrap"); if(!wrap)return;
+  const tip=wrap.querySelector("#maptip");
+  const show=c=>{const r=wrap.getBoundingClientRect(),b=c.getBoundingClientRect();
+    tip.innerHTML=`<b>${c.dataset.time}</b> · ${c.dataset.name}<br><span style="opacity:.7">${c.dataset.loc}</span>`;
+    tip.style.left=(b.left+b.width/2-r.left)+"px";tip.style.top=(b.top-r.top)+"px";tip.style.opacity="1";};
+  wrap.querySelectorAll("circle.mnode").forEach(c=>{
+    c.addEventListener("pointerenter",()=>show(c));
+    c.addEventListener("pointerleave",()=>tip.style.opacity="0");
+    c.addEventListener("click",()=>show(c));
+  });
+}
+
+function buildRibbon(tr){
+  let prev=null,rows="";
+  tr.stops.forEach((st,i)=>{
+    const s=S[st[0]],term=(i===0||i===tr.stops.length-1);
+    if(s.l!==prev){rows+=`<div class="loc-head">${s.l}</div>`;prev=s.l;}
+    rows+=`<div class="stop ${term?'term':''} ${s.pol?'pol':''}"><div class="t mono">${st[1]}</div>
+      <div class="rail"><div class="node"></div></div>
+      <div class="info"><div class="name">${s.n}</div>${s.closest?`<span class="note">${t().closest}</span>`:""}</div></div>`;
+  });
+  return `<div class="ribbon">${rows}</div>`;
+}
+
+function renderDetail(){
+  if(lmap){try{lmap.remove();}catch(e){}lmap=null;}
+  const tr=selected; if(!tr){detailEl.innerHTML="";return;}
+  const oL=S[tr.stops[0][0]].l,dL=S[tr.stops.at(-1)[0]].l,pol=servesPol(tr);
+  const head=`<div class="head">
+      <div class="od">${oL}<span class="dash">→</span>${dL}</div>
+      <div class="stats">
+        <span class="pill">${t().depart} <b class="mono">${tr.stops[0][1]}</b></span>
+        <span class="pill">${t().arrive} <b class="mono">${tr.stops.at(-1)[1]}</b></span>
+        <span class="pill">${t().dur} <b>${fmtDur(dur(tr))}</b></span>
+        <span class="pill"><b>${tr.stops.length}</b> ${t().stops}</span>
+        <span class="pill" style="color:${TYPES[tr.type].color}"><b>${t().types[tr.type]}</b></span>
+        ${pol?`<span class="badge-pol">★ ${t().servesPol}</span>`:""}
+      </div>
+      <div class="modeseg" id="modeSeg">
+        <button data-mode="map" aria-pressed="${mode==='map'}">🗺 ${t().map}</button>
+        <button data-mode="list" aria-pressed="${mode==='list'}">☰ ${t().list}</button>
+      </div></div>`;
+  detailEl.innerHTML=head+(mode==="map"?`<div id="mapholder"></div>`:buildRibbon(tr));
+  $("#modeSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.mode;renderDetail();});
+  if(mode==="map") mountMap(tr);
+}
+
+function renderGrid(){
+  const trips=TRIPS.filter(x=>x.day===day && (!polOnly||servesPol(x)));
+  const order=["VEN","BAR","HOS","PED","REM","SAI","MAS","PRI","VIL","SAR","REN","LLE","COR","PRA","HST","TOR","PAP","PPA","AFO","MOR","SAG","ROT","IDI","MON","FMA"];
+  const present=new Set(); trips.forEach(x=>x.stops.forEach(([k])=>present.add(k)));
+  const keys=order.filter(k=>present.has(k));
+  const head=`<tr><th class="stopcol">${t().stopCol}</th>`+trips.map(x=>`<th class="mono">${x.stops[0][1]}</th>`).join("")+`</tr>`;
+  let body="";
+  keys.forEach(k=>{const s=S[k];
+    const cells=trips.map(x=>{const hit=x.stops.find(([kk])=>kk===k);return hit?`<td class="mono">${hit[1]}</td>`:`<td class="x">·</td>`;}).join("");
+    body+=`<tr class="${s.pol?'polrow':''}"><td class="stopcol">${s.n}<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">${s.l}</div></td>${cells}</tr>`;});
+  gridEl.innerHTML=`<div class="tablewrap"><table><thead class="${day==='sat'?'sat':''}">${head}</thead><tbody>${body}</tbody></table></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-top:8px">${t().gridNote}</div>`;
+}
+
+function syncView(){
+  $("#tripPane").classList.toggle("off",view!=="trip");
+  gridEl.classList.toggle("on",view==="grid");
+  if(view==="trip"){renderDeps();renderDetail();}
+  else{ if(lmap){try{lmap.remove();}catch(e){}lmap=null;} renderGrid(); }
+}
+
+$("#langs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  lang=b.dataset.l;[...e.currentTarget.children].forEach(x=>x.setAttribute("aria-pressed",x===b));paintStatic();syncView();});
+$("#daySeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  day=b.dataset.day;selected=null;[...e.currentTarget.children].forEach(x=>x.setAttribute("aria-pressed",x===b));
+  $("#daySeg").classList.toggle("sat",day==="sat");syncView();});
+$("#viewSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  view=b.dataset.view;[...e.currentTarget.children].forEach(x=>x.setAttribute("aria-pressed",x===b));syncView();});
+$("#polFilter").addEventListener("change",e=>{polOnly=e.target.checked;selected=null;syncView();});
+
+paintStatic();syncView();
+</script>
+</body>
+</html>
